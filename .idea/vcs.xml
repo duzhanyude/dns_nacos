@@ -3,5 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/github.com/EDDYCJY/go-grpc-example" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/github.com/nacos-group/nacos-sdk-go" vcs="Git" />
   </component>
 </project>
