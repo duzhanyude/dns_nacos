@@ -2,6 +2,7 @@ package main
 
 import (
 	"com.dnsnacos/conf"
+	_ "com.dnsnacos/db"
 	"com.dnsnacos/dns"
 	"flag"
 	"os"
