@@ -31,12 +31,14 @@ func Listen() {
 		_, addr, _ := conn.ReadFromUDP(buf)
 		_ = m.Unpack(buf)
 		if m.Header.Response {
-			name := m.Questions[0].Name.String()
-			respMap[name] = response{m}
-			r := reqMap[name]
-			packed, _ := m.Pack()
-			conn.WriteToUDP(packed, r.addr)
-			delete(reqMap, name)
+			for _, question := range m.Questions {
+				name := question.Name.String()
+				respMap[name] = response{m}
+				r := reqMap[name]
+				packed, _ := m.Pack()
+				conn.WriteToUDP(packed, r.addr)
+				delete(reqMap, name)
+			}
 		}
 		fmt.Println(len(respMap))
 		if len(reqMap) > 1000 {
@@ -46,29 +48,37 @@ func Listen() {
 			respMap = make(map[string]response)
 		}
 		if len(m.Questions) > 0 {
-			question := m.Questions[0]
 
-			//本地配置的域名
-			bytes := conf.GetIPWithName(question.Name.String())
-			if bytes[0] != 0 {
-				m.Answers = createDefinePackage(question)
-				pack, _ := m.Pack()
-				conn.WriteTo(pack, addr)
-			}
-			//判断是否存在本地缓存中
-			r := respMap[question.Name.String()]
-			if r.mesaage.ID != 0 {
-				pack, _ := r.mesaage.Pack()
-				conn.WriteTo(pack, addr)
-			}
+			for _, question := range m.Questions {
+				if question.Type == dnsmessage.TypeAAAA {
+					m.Response = true
+					m.Answers = []dnsmessage.Resource{}
+					pack, _ := m.Pack()
+					conn.WriteTo(pack, addr)
+					continue
+				}
+				//本地配置的域名
+				bytes := conf.GetIPWithName(question.Name.String())
+				if bytes[0] != 0 {
+					m.Answers = createDefinePackage(question)
+					pack, _ := m.Pack()
+					conn.WriteTo(pack, addr)
+				}
+				//判断是否存在本地缓存中
+				r := respMap[question.Name.String()]
+				if r.mesaage.ID != 0 {
+					pack, _ := r.mesaage.Pack()
+					conn.WriteTo(pack, addr)
+				}
 
-			reqMap[question.Name.String()] = request{addr, m}
-			//向上游获取域名
-			dnsIP := conf.GetUPDNS()
-			fmt.Println(dnsIP)
-			packed, _ := m.Pack()
-			resolver := net.UDPAddr{IP: dnsIP, Port: 53}
-			conn.WriteToUDP(packed, &resolver)
+				reqMap[question.Name.String()] = request{addr, m}
+				//向上游获取域名
+				dnsIP := conf.GetUPDNS()
+				fmt.Println(dnsIP)
+				packed, _ := m.Pack()
+				resolver := net.UDPAddr{IP: dnsIP, Port: 53}
+				conn.WriteToUDP(packed, &resolver)
+			}
 		}
 
 	}
@@ -86,7 +96,7 @@ func createDefinePackage(question dnsmessage.Question) []dnsmessage.Resource {
 }
 
 func timer() {
-	timer := time.NewTicker(10 * time.Second)
+	timer := time.NewTicker(1000 * time.Second)
 	for {
 		select {
 		case <-timer.C:
