@@ -6,12 +6,10 @@ import (
 )
 
 var global = make(map[string][4]byte)
-var up_DNS_Server = []net.IP{net.IP{114, 114, 114, 114}, net.IP{61, 128, 128, 68}, net.IP{8, 8, 8, 8}}
+var up_DNS_Server = []net.IP{net.IP{114, 114, 114, 114}, net.IP{61, 128, 128, 68}, net.IP{8, 8, 8, 8}, net.IP{172, 16, 254, 46}}
 
 func init() {
 	//初始化本地域名映射
-	//SaveIPWithName("www.baidu.cmm.",[4]byte{172, 16, 254, 104})
-	SaveIPWithName("www.baidu.comq.", [4]byte{172, 16, 254, 40})
 }
 
 func GetUPDNS() net.IP {

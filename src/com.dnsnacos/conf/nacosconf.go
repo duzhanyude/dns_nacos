@@ -2,7 +2,6 @@ package conf
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
@@ -70,7 +69,7 @@ func InitNacos(ip string, nameSpace string) {
 		DataId: dataId,
 		Group:  group,
 		OnChange: func(namespace, group, dataId, data string) {
-			fmt.Println("group:" + group + ", dataId:" + dataId + ", data:" + data)
+			//fmt.Println("group:" + group + ", dataId:" + dataId + ", data:" + data)
 			var dms domainObjs
 			json.Unmarshal([]byte(data), &dms)
 			objs := dms.Domains
