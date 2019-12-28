@@ -15,6 +15,7 @@ import (
 type request struct {
 	addr    *net.UDPAddr
 	mesaage dnsmessage.Message
+	conn    *net.UDPConn
 }
 type response struct {
 	Mesaage dnsmessage.Message
@@ -29,9 +30,11 @@ var (
 	CONSTANT_RESPONSE = "respMap"
 )
 var (
-	m      dnsmessage.Message
-	reqMap = make(map[string]request)
-	lock   sync.Mutex
+	reqMap      = make(map[string]request)
+	respMap     = make(map[string]response)
+	reqLock     sync.Mutex
+	responsLock sync.Mutex
+	message     = make(chan dnsmessage.Message)
 )
 
 func Listen() {
@@ -39,22 +42,49 @@ func Listen() {
 	go timer()
 	conn, _ := net.ListenUDP("udp", &net.UDPAddr{Port: 53})
 	defer conn.Close()
+	fmt.Println("开启代理成功")
+	req := make(chan request)
 
+	go handler(req)
+	go sendRemote(message)
 	for {
 		buf := make([]byte, 512)
 		_, addr, _ := conn.ReadFromUDP(buf)
+		var m dnsmessage.Message
 		_ = m.Unpack(buf)
-		if m.Header.Response {
-			go handlerResponse(conn, m)
-			continue
-		}
+		request_r := request{addr: addr, mesaage: m, conn: conn}
+		//fmt.Println(request_r.mesaage.GoString())
+		req <- request_r
+	}
+}
 
-		go clearCache()
+func handler(req chan request) {
+
+	for {
+		request_t := <-req
+		/*if m.Header.Response {
+			handlerResponse(conn, m)
+			return
+		}*/
+		m := request_t.mesaage
+		addr := request_t.addr
+
 		if len(m.Questions) > 0 {
+			if m.Questions[0].Type == dnsmessage.TypeAAAA {
+				m.Answers = []dnsmessage.Resource{}
+				m.Response = true
+				//sendUDPP(addr,m)
+				packed, _ := m.Pack()
+				request_t.conn.WriteTo(packed, addr)
+				continue
+			}
 
-			routeLocalDNS(conn, addr)
-			routeRemoteDNS(conn, addr)
+			if routeLocalDNS(request_t) {
+				routeRemoteDNS(request_t)
+			}
 		}
+
+		//
 	}
 }
 
@@ -74,88 +104,145 @@ func createDefinePackage(question dnsmessage.Question) []dnsmessage.Resource {
 }
 
 //处理上游返回
-func handlerResponse(conn *net.UDPConn, message dnsmessage.Message) {
+func handlerResponse(message dnsmessage.Message) {
+	if !message.Response {
+		return
+	}
+	fmt.Println(message.GoString())
 	msg := message
-	connection := conn
-	packed, _ := msg.Pack()
-	lock.Lock()
+	reqLock.Lock()
 	request := reqMap[strconv.Itoa(int(msg.ID))]
-	connection.WriteToUDP(packed, request.addr)
-	delete(reqMap, strconv.Itoa(int(msg.ID)))
-	lock.Unlock()
+	if request.addr != nil {
+		//sendUDPP(request.addr,request.mesaage)
+		packed, _ := message.Pack()
+		request.conn.WriteTo(packed, request.addr)
+		delete(reqMap, strconv.Itoa(int(msg.ID)))
+	}
+	reqLock.Unlock()
 	//缓存问题回答
 	question := msg.Questions[0]
 
-	lock.Lock()
-	respMap := getRespMap()
-	if respMap.RespMap == nil {
+	//respMap := getRespMap()
+	/*if respMap.RespMap == nil {
 		respMap = responseMap{}
 		respMap.RespMap = make(map[string]response)
-	}
-	respMap.RespMap[question.GoString()] = response{msg}
-	saveRespMap(respMap)
-	lock.Unlock()
+	}*/
+	responsLock.Lock()
+	respMap[question.Name.String()+question.Type.String()] = response{msg}
+	responsLock.Unlock()
+	//saveRespMap(respMap)
 }
 
 func clearCache() {
+	//fmt.Println(len(reqMap))
 	if len(reqMap) > 500 {
+		reqLock.Lock()
 		reqMap = make(map[string]request)
+		reqLock.Unlock()
 	}
 
-	lock.Lock()
-	respMap := getRespMap()
-	fmt.Println(len(respMap.RespMap))
-	if len(respMap.RespMap) > 1000000 {
-		respMap.RespMap = make(map[string]response)
+	//respMap := getRespMap()
+	fmt.Println(len(respMap))
+	if len(respMap) > 1000000 {
+		responsLock.Lock()
+		respMap = make(map[string]response)
+		responsLock.Unlock()
 	}
-	saveRespMap(respMap)
-	lock.Unlock()
+	//saveRespMap(respMap)
 
 }
 
 //路由本地
-func routeLocalDNS(conn *net.UDPConn, addr *net.UDPAddr) {
+func routeLocalDNS(req request) bool {
+	var m = req.mesaage
+	addr := req.addr
 	question := m.Questions[0]
 	//本地配置的域名
 	bytes := conf.GetIPWithName(question.Name.String())
 	if len(bytes) > 0 {
 		m.Answers = createDefinePackage(question)
-		pack, _ := m.Pack()
-		conn.WriteTo(pack, addr)
+		m.Response = true
+		m.RecursionDesired = true
+		packed, _ := m.Pack()
+		req.conn.WriteTo(packed, addr)
+		//fmt.Println(m.GoString())
+		//sendUDPP(addr,m)
+		return false
 	}
+	return true
 }
 
 //向上游获取域名
-func routeRemoteDNS(conn *net.UDPConn, addr *net.UDPAddr) {
-
+func routeRemoteDNS(req request) {
+	var m = req.mesaage
+	var addr = req.addr
 	question := m.Questions[0]
 	//获取本地缓存
-	lock.Lock()
-	respMap := getRespMap()
-	if respMap.RespMap != nil {
-		r := respMap.RespMap[question.GoString()]
-		if r.Mesaage.ID != 0 {
-			r.Mesaage.ID = m.ID
-			pack, _ := r.Mesaage.Pack()
-			conn.WriteTo(pack, addr)
-		}
+	//respMap := getRespMap()
+	//if respMap != nil {
+	res := respMap[question.Name.String()+question.Type.String()]
+	if len(res.Mesaage.Questions) > 0 && len(res.Mesaage.Answers) > 0 {
+		m.Answers = res.Mesaage.Answers
+		m.Response = true
+		//sendUDPP(addr,m)
+		packed, _ := m.Pack()
+		req.conn.WriteTo(packed, addr)
+		return
+	} else {
+		message <- m
 	}
-	reqMap[strconv.Itoa(int(m.ID))] = request{addr, m}
-	lock.Unlock()
-	dnsIP := conf.GetUPDNS()
-	fmt.Println(dnsIP)
-	packed, _ := m.Pack()
-	resolver := net.UDPAddr{IP: dnsIP, Port: 53}
-	conn.WriteToUDP(packed, &resolver)
+	reqLock.Lock()
+	reqMap[strconv.Itoa(int(m.ID))] = request{addr, m, req.conn}
+	reqLock.Unlock()
+}
+func sendRemote(msg chan dnsmessage.Message) {
+	conn, _ := net.ListenUDP("udp", &net.UDPAddr{Port: 10053})
+	defer conn.Close()
+	go receiveMessage(conn)
+	for {
+		message := <-msg
+		dnsIP := conf.GetUPDNS()
+		fmt.Println(dnsIP)
+		//fmt.Println(message.GoString())
+		packed, _ := message.Pack()
+		resolver := net.UDPAddr{IP: dnsIP, Port: 53}
+		conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
+		conn.WriteTo(packed, &resolver)
+
+		//connect, _ := net.DialUDP("udp", nil, &resolver)
+		//connect.Write(packed)
+		//buf := make([]byte, 512)
+		/*connect.Read(buf)
+		var m  dnsmessage.Message
+		_ = m.Unpack(buf)
+			c*/
+
+	}
+}
+func sendUDPP(addr *net.UDPAddr, mes dnsmessage.Message) {
+	packed, _ := mes.Pack()
+	connect, _ := net.DialUDP("udp", nil, addr)
+	connect.Write(packed)
+}
+func receiveMessage(conn *net.UDPConn) {
+	for {
+		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		buf := make([]byte, 512)
+		conn.Read(buf)
+		var m dnsmessage.Message
+		_ = m.Unpack(buf)
+		handlerResponse(m)
+	}
 }
 
 //设置定时器
 func timer() {
-	timer := time.NewTicker(1000 * time.Second)
+	timer := time.NewTicker(10 * time.Second)
 	for {
 		select {
 		case <-timer.C:
 			go handlerLocalRemoteCache()
+			clearCache()
 		}
 	}
 }
@@ -163,26 +250,26 @@ func timer() {
 //处理远程本地缓存
 func handlerLocalRemoteCache() {
 
-	respMap := getRespMap()
-	if respMap.RespMap == nil {
+	//respMap := getRespMap()
+	/*if respMap.RespMap == nil {
 		return
-	}
-	lock.Lock()
-	for k, v := range respMap.RespMap {
+	}*/
+	for k, v := range respMap {
 		if len(v.Mesaage.Answers) > 0 {
 			u := v.Mesaage.Answers[0].Header.TTL
 			u = u - 1
 			//fmt.Println("ttl-"+strconv.Itoa(int(u)))
+			responsLock.Lock()
 			if u <= 0 {
-				delete(respMap.RespMap, k)
+				delete(respMap, k)
 			} else {
 				v.Mesaage.Answers[0].Header.TTL = u
-				respMap.RespMap[k] = v
+				respMap[k] = v
 			}
+			responsLock.Unlock()
 		}
 	}
-	saveRespMap(respMap)
-	lock.Unlock()
+	//saveRespMap(respMap)
 }
 func getRespMap() responseMap {
 	var respMap responseMap

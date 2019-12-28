@@ -28,18 +28,19 @@ func InitNacos(ip string, nameSpace string) {
 	// 从控制台命名空间管理的"命名空间详情"中拷贝 End Point、命名空间 ID
 	var endpoint = ip
 	var namespaceId = nameSpace
+	//var endpoint = "172.16.1.81"
+	//var namespaceId = "8dfcdd4a-e7fb-4798-beb0-0c3cb84dd13e"
 
 	// 推荐使用 RAM 用户的 accessKey、secretKey
 	//var accessKey = "${accessKey}"
 	//var secretKey = "${secretKey}"
-
 	clientConfig := constant.ClientConfig{
 		//
 		NamespaceId: namespaceId,
 		//AccessKey:      accessKey,
 		//SecretKey:      secretKey,
 		TimeoutMs:      5 * 1000,
-		ListenInterval: 30 * 1000,
+		ListenInterval: 10 * 1000,
 	}
 	serverConfigs := []constant.ServerConfig{
 		{
