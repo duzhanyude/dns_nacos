@@ -108,7 +108,7 @@ func handlerResponse(message dnsmessage.Message) {
 	if !message.Response {
 		return
 	}
-	fmt.Println(message.GoString())
+	//fmt.Println(message.GoString())
 	msg := message
 	reqLock.Lock()
 	request := reqMap[strconv.Itoa(int(msg.ID))]
@@ -180,7 +180,9 @@ func routeRemoteDNS(req request) {
 	//获取本地缓存
 	//respMap := getRespMap()
 	//if respMap != nil {
+	responsLock.Lock()
 	res := respMap[question.Name.String()+question.Type.String()]
+	responsLock.Unlock()
 	if len(res.Mesaage.Questions) > 0 && len(res.Mesaage.Answers) > 0 {
 		m.Answers = res.Mesaage.Answers
 		m.Response = true
@@ -202,7 +204,7 @@ func sendRemote(msg chan dnsmessage.Message) {
 	for {
 		message := <-msg
 		dnsIP := conf.GetUPDNS()
-		fmt.Println(dnsIP)
+		//fmt.Println(dnsIP)
 		//fmt.Println(message.GoString())
 		packed, _ := message.Pack()
 		resolver := net.UDPAddr{IP: dnsIP, Port: 53}
@@ -237,7 +239,7 @@ func receiveMessage(conn *net.UDPConn) {
 
 //设置定时器
 func timer() {
-	timer := time.NewTicker(10 * time.Second)
+	timer := time.NewTicker(30 * time.Second)
 	for {
 		select {
 		case <-timer.C:
@@ -279,4 +281,7 @@ func getRespMap() responseMap {
 func saveRespMap(respMap responseMap) {
 	b, _ := json.Marshal(respMap)
 	db.Save(TABLE_NAME, CONSTANT_RESPONSE, string(b))
+}
+func GetCacheSize() string {
+	return strconv.Itoa(len(respMap))
 }

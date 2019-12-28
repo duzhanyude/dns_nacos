@@ -4,6 +4,7 @@ import (
 	"com.dnsnacos/conf"
 	_ "com.dnsnacos/db"
 	"com.dnsnacos/dns"
+	_ "com.dnsnacos/web"
 	"flag"
 	"os"
 )
