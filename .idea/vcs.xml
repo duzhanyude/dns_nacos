@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="VcsDirectoryMappings">
-    <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/github.com/EDDYCJY/go-grpc-example" vcs="Git" />
+    <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/github.com/boltdb/bolt" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/github.com/davecgh/go-spew" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/github.com/nacos-group/nacos-sdk-go" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/github.com/pmezard/go-difflib" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/github.com/stretchr/testify" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/github.com/timest/env" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/gopkg.in/yaml.v2" vcs="Git" />
   </component>
 </project>

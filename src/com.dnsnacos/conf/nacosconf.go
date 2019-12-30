@@ -1,14 +1,11 @@
 package conf
 
 import (
-	"encoding/json"
+	"com.dnsnacos/db"
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"net"
-	"strconv"
-	"strings"
 )
 
 var configClient config_client.IConfigClient
@@ -73,35 +70,8 @@ func InitNacos(ip string, nameSpace string) {
 		Group:  group,
 		OnChange: func(namespace, group, dataId, data string) {
 			//fmt.Println("group:" + group + ", dataId:" + dataId + ", data:" + data)
-			var dms domainObjs
-			json.Unmarshal([]byte(data), &dms)
-
-			//保存域名映射
-			objs := dms.Domains
-			for _, val := range objs {
-				DelIPWithName(val.Domain)
-				for _, ip := range val.Ips {
-					var i_p [4]byte
-					ip_s := strings.Split(ip, ".")
-					for i, v := range ip_s {
-						val, _ := strconv.Atoi(v)
-						i_p[i] = byte(val)
-					}
-					SaveIPWithName(val.Domain+".", i_p)
-				}
-			}
-			//保存dns
-			dns := dms.Updns
-			ClearDNS()
-			for _, val := range dns {
-				var ip [4]byte
-				ips := strings.Split(val, ".")
-				for i, v := range ips {
-					val, _ := strconv.Atoi(v)
-					ip[i] = byte(val)
-				}
-				SaveDNS(net.IP{ip[0], ip[1], ip[2], ip[3]})
-			}
+			SaveLocalConfig(data)
+			db.Save(LOCAL_CONFIG_TABLE, GLOBAL_CONFIG, data)
 		},
 	})
 }
