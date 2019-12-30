@@ -5,6 +5,7 @@ import (
 	"com.dnsnacos/db"
 	"encoding/json"
 	"fmt"
+	"github.com/rcrowley/go-metrics"
 	"golang.org/x/net/dns/dnsmessage"
 	"net"
 	"strconv"
@@ -28,6 +29,10 @@ var (
 	TABLE_NAME        = "dns"
 	CONSTANT_REQUEST  = "reqMap"
 	CONSTANT_RESPONSE = "respMap"
+	Remote_m          = metrics.NewMeter()
+	Remote_c          = metrics.NewCounter()
+	Remote_r_m        = metrics.NewMeter()
+	Remote_r_c        = metrics.NewCounter()
 )
 var (
 	reqMap      = make(map[string]request)
@@ -37,6 +42,13 @@ var (
 	message     = make(chan dnsmessage.Message)
 )
 
+func init() {
+
+	metrics.Register("remote_m", Remote_m)
+	metrics.Register("remote_c", Remote_c)
+	metrics.Register("remote_r_m", Remote_r_m)
+	metrics.Register("remote_r_c", Remote_r_c)
+}
 func Listen() {
 	//定义定时器
 	go timer()
@@ -210,7 +222,8 @@ func sendRemote(msg chan dnsmessage.Message) {
 		resolver := net.UDPAddr{IP: dnsIP, Port: 53}
 		conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
 		conn.WriteTo(packed, &resolver)
-
+		Remote_c.Inc(1)
+		Remote_m.Mark(Remote_c.Count())
 		//connect, _ := net.DialUDP("udp", nil, &resolver)
 		//connect.Write(packed)
 		//buf := make([]byte, 512)
@@ -234,6 +247,8 @@ func receiveMessage(conn *net.UDPConn) {
 		var m dnsmessage.Message
 		_ = m.Unpack(buf)
 		handlerResponse(m)
+		Remote_r_c.Inc(1)
+		Remote_r_m.Mark(Remote_r_c.Count())
 	}
 }
 
