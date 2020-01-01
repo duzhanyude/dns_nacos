@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>后台管理</title>
+    <link rel="stylesheet" href="./css/index.css">
+    <style>
+        .el-header {
+            background-color: #B3C0D1;
+            color: #333;
+            line-height: 60px;
+        }
+
+        .el-aside {
+            color: #333;
+        }
+        .el-menu{
+            color: #fff;
+            background-color: rgb(48, 65, 86);
+        }
+        .el-submenu__title {
+            color: #fff;
+        }
+        .el-menu-item-group__title{
+            color: #fff;
+        }
+        .el-menu-item{
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <el-container style="height: 100%; border: 1px solid #eee;">
+        <el-aside width="200px" style="">
+            <div class="el-header" style="background-color: #409EFF;color: #fff">DNS后台管理系统</div>
+            <el-menu :default-openeds="['1']" @open="handleOpen" @close="handleClose">
+                <el-submenu index="1">
+                    <template slot="title"><i class="el-icon-menu"></i>首页</template>
+                </el-submenu>
+                <el-submenu index="2">
+                    <template slot="title"><i class="el-icon-setting"></i><router-link to="/button-counter">设置</router-link></template>
+                </el-submenu>
+            </el-menu>
+        </el-aside>
+        <el-container>
+            <el-header style="text-align: right; font-size: 12px;box-shadow: 0 1px 4px rgba(0,21,41,.08);background-color: #fff">
+                <el-dropdown>
+                    <i class="el-icon-setting" style="margin-right: 15px"></i>
+                    <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item>退出</el-dropdown-item>
+                        <el-dropdown-item>修改</el-dropdown-item>
+                    </el-dropdown-menu>
+                </el-dropdown>
+                <span>admin</span>
+            </el-header>
+
+            <el-main>
+                <!--<el-table :data="tableData">
+                    <el-table-column prop="date" label="日期" width="140">
+                    </el-table-column>
+                    <el-table-column prop="name" label="姓名" width="120">
+                    </el-table-column>
+                    <el-table-column prop="address" label="地址">
+                    </el-table-column>
+                </el-table>-->
+                <router-view></router-view>
+            </el-main>
+        </el-container>
+    </el-container>
+
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/vue-router.js"></script>
+<script src="./js/index.js"></script>
+<script>
+    const button = {
+        template: '<div>\n' +
+            '<el-row><el-autocomplete\n' +
+            '  v-model="state"\n' +
+            '  :fetch-suggestions="querySearchAsync"\n' +
+            '  placeholder="请输入内容"\n' +
+            '  @select="handleSelect"\n' +
+            '></el-autocomplete>\n' +
+            '  <el-button  round>搜索</el-button>\n' +
+            '  <el-button type="primary" @click="dialogFormVisible = true" round> 新增</el-button>\n' +
+            '</el-row><el-table\n' +
+            '    :data="tableData"\n' +
+            '    style="width: 100%">\n' +
+            '    <el-table-column\n' +
+            '      label="日期"\n' +
+            '      width="180">\n' +
+            '      <template slot-scope="scope">\n' +
+            '        <i class="el-icon-time"></i>\n' +
+            '        <span style="margin-left: 10px">{{ scope.row.date }}</span>\n' +
+            '      </template>\n' +
+            '    </el-table-column>\n' +
+            '    <el-table-column\n' +
+            '      label="姓名"\n' +
+            '      width="180">\n' +
+            '      <template slot-scope="scope">\n' +
+            '        <el-popover trigger="hover" placement="top">\n' +
+            '          <p>姓名: {{ scope.row.name }}</p>\n' +
+            '          <p>住址: {{ scope.row.address }}</p>\n' +
+            '          <div slot="reference" class="name-wrapper">\n' +
+            '            <el-tag size="medium">{{ scope.row.name }}</el-tag>\n' +
+            '          </div>\n' +
+            '        </el-popover>\n' +
+            '      </template>\n' +
+            '    </el-table-column>\n' +
+            '    <el-table-column label="操作">\n' +
+            '      <template slot-scope="scope">\n' +
+            '        <el-button\n' +
+            '          size="mini"\n' +
+            '          @click="handleEdit(scope.$index, scope.row)">编辑</el-button>\n' +
+            '        <el-button\n' +
+            '          size="mini"\n' +
+            '          type="danger"\n' +
+            '          @click="handleDelete(scope.$index, scope.row)">删除</el-button>\n' +
+            '      </template>\n' +
+            '    </el-table-column>\n' +
+            '  </el-table>'+
+            '<div class="block">\n' +
+            '    <el-pagination\n' +
+            '      @size-change="handleSizeChange"\n' +
+            '      @current-change="handleCurrentChange"\n' +
+            '      :current-page.sync="currentPage1"\n' +
+            '      :page-size="100"\n' +
+            '      layout="total, prev, pager, next"\n' +
+            '      :total="1000">\n' +
+            '    </el-pagination>\n' +
+            '  </div><el-dialog title="收货地址" :visible.sync="dialogFormVisible">\n' +
+            '  <el-form :model="form">\n' +
+            '    <el-form-item label="活动名称" :label-width="formLabelWidth">\n' +
+            '      <el-input v-model="form.name" autocomplete="off"></el-input>\n' +
+            '    </el-form-item>\n' +
+            '    <el-form-item label="活动区域" :label-width="formLabelWidth">\n' +
+            '      <el-select v-model="form.region" placeholder="请选择活动区域">\n' +
+            '        <el-option label="区域一" value="shanghai"></el-option>\n' +
+            '        <el-option label="区域二" value="beijing"></el-option>\n' +
+            '      </el-select>\n' +
+            '    </el-form-item>\n' +
+            '  </el-form>\n' +
+            '  <div slot="footer" class="dialog-footer">\n' +
+            '    <el-button @click="dialogFormVisible = false">取 消</el-button>\n' +
+            '    <el-button type="primary" @click="dialogFormVisible = false">确 定</el-button>\n' +
+            '  </div>\n' +
+            '</el-dialog></div>',
+        data: function () {
+            return {
+                tableData: [{
+                    date: '2016-05-02',
+                    name: '王小虎',
+                    address: '上海市普陀区金沙江路 1518 弄'
+                }, {
+                    date: '2016-05-04',
+                    name: '王小虎',
+                    address: '上海市普陀区金沙江路 1517 弄'
+                }, {
+                    date: '2016-05-01',
+                    name: '王小虎',
+                    address: '上海市普陀区金沙江路 1519 弄'
+                }, {
+                    date: '2016-05-03',
+                    name: '王小虎',
+                    address: '上海市普陀区金沙江路 1516 弄'
+                }],
+                dialogFormVisible: false,
+                form: {
+                    name: '',
+                    region: '',
+                    date1: '',
+                    date2: '',
+                    delivery: false,
+                    type: [],
+                    resource: '',
+                    desc: ''
+                },
+            }
+        },
+        methods: {
+            handleEdit(index, row) {
+                console.log(index, row);
+            },
+            handleDelete(index, row) {
+                console.log(index, row);
+            }
+        },
+    }
+    const Foo = { template: '<div>foo111</div>' }
+    const Bar = { template: '<div>bar</div>' }
+
+    // 2. 定义路由
+    // 每个路由应该映射一个组件。 其中"component" 可以是
+    // 通过 Vue.extend() 创建的组件构造器，
+    // 或者，只是一个组件配置对象。
+    // 我们晚点再讨论嵌套路由。
+    const routes = [
+        { path: '/foo', component: Foo },
+        { path: '/bar', component: Bar },
+        { path: '/button-counter', component: button }
+    ]
+    const router = new VueRouter({
+        routes
+    })
+    new Vue({
+        router
+        ,
+        el: '#app',
+        data() {
+            const item = {
+                date: '2016-05-02',
+                name: '王小虎',
+                address: '上海市普陀区金沙江路 1518 弄'
+            };
+            return {
+                tableData: Array(20).fill(item),
+                isCollapse: true
+            }
+        }, methods: {
+            handleOpen(key, keyPath) {
+                this.$message('这是一条消息提示');
+                console.log(this.$router)
+                console.log(key, keyPath);
+            },
+            handleClose(key, keyPath) {
+                console.log(key, keyPath);
+            }
+        }
+    })
+</script>
+</body>
+</html>
