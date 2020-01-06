@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	Nacos_IP        = *flag.String("N_IP", os.Getenv("N_IP"), "nacos ip address")
-	Nacos_NameSpace = *flag.String("N_Name", os.Getenv("N_Name"), "nacos  namespace")
+	Nacos_IP        = *flag.String("nacos_ip", os.Getenv("nacos_ip"), "nacos ip address")
+	Nacos_NameSpace = *flag.String("nacos_name", os.Getenv("nacos_name"), "nacos  namespace")
 )
 
 func main() {

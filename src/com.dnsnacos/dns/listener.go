@@ -54,9 +54,9 @@ func Listen() {
 	go timer()
 	conn, _ := net.ListenUDP("udp", &net.UDPAddr{Port: 53})
 	defer conn.Close()
-	fmt.Println("开启代理成功")
-	req := make(chan request)
+	fmt.Println("****** start DNS sucess! ******")
 
+	req := make(chan request)
 	go handler(req)
 	go sendRemote(message)
 	for {

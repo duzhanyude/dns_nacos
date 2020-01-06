@@ -3,8 +3,7 @@ package web
 import (
 	"com.dnsnacos/dns"
 	"fmt"
-	_ "github.com/mkevac/debugcharts"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	//_ "github.com/mkevac/debugcharts"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -35,7 +34,7 @@ func createResponse() string {
 }
 func initWeb() {
 
-	http.Handle("/metrics", promhttp.Handler())
+	//http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", printCacheStatus)    //设置访问的路由
 	err := http.ListenAndServe(":10053", nil) //设置监听的端口
 	if err != nil {
