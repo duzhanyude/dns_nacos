@@ -1,5 +1,4 @@
 dns_nacos.iml
 .idea
-bin
 src/github.com/**
 src/golang.org/**

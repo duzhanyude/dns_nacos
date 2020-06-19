@@ -10,11 +10,13 @@ import (
 )
 
 var (
-	Nacos_IP        = *flag.String("nacos_ip", os.Getenv("nacos_ip"), "nacos ip address")
-	Nacos_NameSpace = *flag.String("nacos_name", os.Getenv("nacos_name"), "nacos  namespace")
+	Nacos_IP        string
+	Nacos_NameSpace string
 )
 
 func main() {
+	flag.StringVar(&Nacos_IP, "nacos_ip", os.Getenv("nacos_ip"), "nacos ip address")
+	flag.StringVar(&Nacos_NameSpace, "nacos_name", os.Getenv("nacos_name"), "nacos  namespace")
 	flag.Parse()
 	conf.InitNacos(Nacos_IP, Nacos_NameSpace)
 	dns.Listen()

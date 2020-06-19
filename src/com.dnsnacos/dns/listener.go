@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/rcrowley/go-metrics"
 	"golang.org/x/net/dns/dnsmessage"
+	"log"
 	"net"
 	"strconv"
 	"sync"
@@ -54,7 +55,7 @@ func Listen() {
 	go timer()
 	conn, _ := net.ListenUDP("udp", &net.UDPAddr{Port: 53})
 	defer conn.Close()
-	fmt.Println("****** start DNS sucess! ******")
+	log.Println("****** start DNS sucess! ******")
 
 	req := make(chan request)
 	go handler(req)
